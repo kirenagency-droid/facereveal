@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Connecting — Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#141416;
+      --card:#1b1c1e;
+      --muted:#9aa3ad;
+      --accent:#2b66f6;
+      --accent-dark:#1f477f;
+      --radius:12px;
+      --text:#eef2ff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,Arial; display:flex;
+      align-items:center; justify-content:center;
+    }
+
+    .container{
+      width:100%; max-width:420px; padding:40px 28px; text-align:center;
+    }
+
+    .badge{
+      width:88px; height:88px; margin:0 auto 22px; border-radius:50%;
+      display:grid; place-items:center; background:#232428; border:1px solid rgba(255,255,255,.03);
+      box-shadow: 0 10px 30px rgba(0,0,0,.6), inset 0 -2px 6px rgba(0,0,0,.4);
+    }
+    .badge svg{width:38px; height:38px; opacity:.95}
+
+    h1{
+      margin:6px 0 6px; font-size:26px; font-weight:700;
+    }
+    p.lead{margin:0 0 22px; color:var(--muted); font-size:15px}
+
+    .progress-wrap{
+      height:10px; background:rgba(255,255,255,.03); border-radius:999px; overflow:hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+    }
+    .progress{
+      height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-dark));
+      transition: width 0.25s linear;
+    }
+
+    /* small animated indicator (center darker rail) */
+    .progress::after{
+      content:''; display:block; height:100%; width:40%;
+      background:rgba(255,255,255,.06); transform:translateX(-50%); opacity:.12;
+      mix-blend-mode:overlay;
+    }
+
+    /* Connected state */
+    .connected h1{ color:#9ff3b6; }
+    .connected p.lead{ color:#bcdfc7 }
+    .connected .badge{ background:linear-gradient(180deg,#22332a,#162617); border-color:rgba(0,0,0,.2) }
+
+    /* subtle loading shimmer */
+    @keyframes shimmer {
+      0%{ transform:translateX(-100%) }
+      100%{ transform:translateX(100%) }
+    }
+    .progress-shimmer{
+      position:relative; height:100%; overflow:hidden;
+    }
+    .progress-shimmer::before{
+      content:''; position:absolute; left:-60%; top:0; height:100%; width:60%;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
+      animation: shimmer 1.6s linear infinite;
+      mix-blend-mode:overlay;
+    }
+
+    /* responsive */
+    @media (max-width:420px){
+      .container{ padding:32px 20px; }
+      h1{ font-size:22px }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app" role="main" aria-live="polite">
+    <div class="badge" aria-hidden="true">
+      <!-- chain/link icon -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L10 5" />
+        <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 1 0 7.07 7.07L14 19" />
+      </svg>
+    </div>
+
+    <h1 id="title">Connecting</h1>
+    <p class="lead" id="subtitle">Please wait...</p>
+
+    <div style="height:18px"></div>
+
+    <div class="progress-wrap" aria-hidden="true">
+      <div id="bar" class="progress progress-shimmer" style="width:0%"></div>
+    </div>
+  </div>
+
+  <script>
+    // Duration in ms
+    const DURATION = 4000;
+
+    const bar = document.getElementById('bar');
+    const app = document.getElementById('app');
+    const title = document.getElementById('title');
+    const subtitle = document.getElementById('subtitle');
+
+    // animate width from 0 to 100% smoothly over DURATION
+    const start = performance.now();
+    function tick(now){
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / DURATION);
+      // optional easing (easeOutCubic)
+      const eased = 1 - Math.pow(1 - t, 3);
+      bar.style.width = (eased * 100).toFixed(2) + '%';
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        finish();
+      }
+    }
+    requestAnimationFrame(tick);
+
+    function finish(){
+      // small delay to make it feel natural
+      setTimeout(()=> {
+        app.classList.add('connected');
+        // replace icon by checkmark
+        document.querySelector('.badge').innerHTML = `
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#bff0b9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        `;
+        title.textContent = 'Connected';
+        subtitle.textContent = 'Session ready';
+        // ensure bar full and stop shimmer
+        bar.style.width = '100%';
+        bar.classList.remove('progress-shimmer');
+      }, 220);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>facereveal — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --text:#f4f7ff; --muted:#bfc6d3; --ok:#22c55e; --ok2:#16a34a; --accent:#3b82f6;
+    --stroke:rgba(255,255,255,.14); --bg:#0e0f12; --warn:#facc15;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--text);background:var(--bg);overflow:hidden}
+
+  /* Background décor */
+  .back{position:fixed; inset:0; background:url('https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1600&auto=format&fit=crop') center/cover no-repeat; filter:blur(18px) brightness(.6); transform:scale(1.06)}
+  .vignette{position:fixed; inset:0; background:radial-gradient(65% 80% at 50% 35%, transparent, #000 70%); opacity:.55}
+
+  /* Carte centrée */
+  .center{min-height:100vh; display:grid; place-items:center; padding:24px; position:relative}
+  .card{width:min(560px,92vw); display:flex; flex-direction:column; align-items:center; text-align:center; gap:18px}
+  .brand{font-weight:800; font-size:36px; letter-spacing:.2px; text-shadow:0 2px 12px rgba(0,0,0,.5)}
+  .avatar{width:132px;height:132px;border-radius:50%;background:#3b3f47;display:grid;place-items:center;box-shadow:0 8px 40px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.06)}
+  .avatar svg{width:66px;height:66px;opacity:.9}
+  h1{margin:0;font-size:30px;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+  .sub{margin-top:-6px;color:#7ceaa6;font-weight:600}
+  .actions{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; width:100%; margin-top:8px}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; border-radius:999px; padding:14px 22px; font-weight:700; border:1px solid var(--stroke); background:#ffffffeb; color:#0e1013; box-shadow:0 8px 30px rgba(0,0,0,.25); transition:transform .06s ease, filter .2s ease; cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .btn:hover{filter:brightness(1.03)}
+  .consent{color:var(--muted); font-size:13px; margin-top:2px}
+  .close{width:min(560px,92vw); margin-top:14px; padding:14px 12px; border-radius:999px; text-align:center; font-weight:700; cursor:pointer; background:#3a3d43; color:#e8edf8; border:1px solid rgba(255,255,255,.1); box-shadow:0 8px 26px rgba(0,0,0,.35)}
+  @media (max-width:420px){.brand{font-size:30px} h1{font-size:24px}}
+
+  /* Overlays + panneaux */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:.25s}
+  .overlay.active{opacity:1;visibility:visible}
+  .panel{width:min(520px,92vw);border-radius:18px;overflow:hidden;background:#1c1d21;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+  .panel-header{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#111214;font-weight:800}
+  .panel-header svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2}
+  .panel-footer{display:flex;justify-content:space-between;padding:14px 18px;background:#111214;font-size:14px}
+  .panel-footer .hint{color:#aeb3be}
+  .panel-footer .ok{color:var(--ok)}
+  .panel-close-wrap{text-align:center;padding:12px 16px 18px;background:#111214}
+  .panel-close{background:#363a42;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:12px 22px;font-weight:700;cursor:pointer}
+  .panel-close:active{transform:translateY(1px)}
+
+  /* LIVE modal */
+  .live-body{position:relative;padding:0;text-align:center}
+  .live-media{
+    position:relative; height:280px; background:#0d0f12 center/cover no-repeat;
+    filter:blur(30px) brightness(.8);
+  }
+  @media (max-width:520px){ .live-media{height:240px} }
+  .live-media::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.32)}
+  .live-center{position:absolute;inset:0;display:grid;place-items:center;color:#d7dbe3;pointer-events:none}
+  .live-icon{width:56px;height:56px;border-radius:50%;background:#00000066;border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;margin-bottom:8px}
+  .live-icon svg{width:30px;height:30px}
+  .live-text{font-size:15px}
+  .mute{position:absolute;right:14px;bottom:14px;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:#0f1114cc;color:#f4f7ff;display:grid;place-items:center;backdrop-filter:blur(6px);cursor:pointer}
+  .mute svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6}
+  .progress{position:absolute;left:0;right:0;top:0;height:4px;background:rgba(255,255,255,.12);overflow:hidden}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa)}
+
+  /* ACCESS modal */
+  .access-body{padding:28px 20px 22px;text-align:center}
+  .lock-badge{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 0 0 2px rgba(250,204,21,.18)}
+  .lock-badge svg{width:34px;height:34px;stroke:var(--warn)}
+  .access-title{font-size:24px;font-weight:800;margin:6px 0 8px}
+  .access-sub{color:var(--muted);font-size:15px;margin:0 0 18px}
+  .unlock{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:800;background:linear-gradient(90deg,#22c55e,#16a34a); color:#05240f; border:0; cursor:pointer; box-shadow:0 10px 30px rgba(22,163,74,.25); text-decoration:none}
+  .policy{margin-top:10px;color:#aab3c0;font-size:12.5px}
+</style>
+</head>
+<body>
+  <div class="back" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div class="center">
+    <div class="card" role="main" aria-live="polite">
+  <div class="brand">facereveal</div>
+
+      <div class="avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 1 0-16 0" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </div>
+
+      <h1>Appareil disponible
+        <svg style="vertical-align:middle;margin-left:8px;" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="#22c55e" opacity=".18"/>
+          <path d="M7 12.5l3 3 7-7" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </h1>
+  <div class="sub">Live camera disponible</div>
+
+      <div class="actions">
+        <button class="btn" id="btnViewLive">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="5" width="13" height="14" rx="2"></rect><path d="M16 8l5-3v14l-5-3"></path>
+          </svg>
+          Regarder le live
+        </button>
+      </div>
+
+  <!-- consentement supprimé -->
+      <div class="close">Close</div>
+    </div>
+  </div>
+
+  <!-- LIVE modal -->
+  <div class="overlay" id="liveOverlay" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true" aria-label="Live Camera">
+      <div class="panel-header">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg>
+        <span>Live Camera</span>
+      </div>
+
+      <div class="live-body">
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <div class="live-media" id="liveMedia"></div>
+        <div class="live-center">
+          <div class="live-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="2" y="6" width="14" height="12" rx="2"></rect><path d="M16 8l6-3v14l-6-3z"></path>
+            </svg>
+          </div>
+          <div class="live-text" id="liveText">Connexion au flux en cours…</div>
+        </div>
+        <button class="mute" aria-label="Mute">
+          <svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4V5z"></path><path d="M19 5l-4 4M15 15l4 4"></path></svg>
+        </button>
+      </div>
+
+      <div class="panel-footer">
+        <div><span class="hint">Device</span><br> iPhone</div>
+        <div><span class="hint">Status</span><br> <strong class="ok">Active</strong></div>
+      </div>
+
+      <div class="panel-close-wrap"><button class="panel-close" id="closeLive">Close</button></div>
+    </div>
+  </div>
+
+  <!-- ACCESS modal -->
+  <div class="overlay" id="accessOverlay" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true" aria-label="Live Camera Access">
+      <div class="panel-header">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><path d="M9 11v-1a3 3 0 0 1 6 0v1"></path><rect x="8" y="11" width="8" height="7" rx="1.5"></rect></svg>
+        <span>Live Camera Access</span>
+      </div>
+      <div class="access-body">
+        <div class="lock-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V9a3 3 0 0 1 6 0v2"/></svg>
+        </div>
+        <div class="access-title">Accès requis</div>
+  <div class="access-sub">Confirme l'accès pour déverrouiller le live.</div>
+        <a class="unlock" href="https://t.trklinkx.com/sl?id=63a14c808dec34873b60498f&pid=4784" target="_blank" rel="noopener noreferrer">Débloquer pour 2€</a>
+  <!-- policy fictive supprimée -->
+      </div>
+      <div class="panel-close-wrap"><button class="panel-close" id="closeAccess">Fermer</button></div>
+    </div>
+  </div>
+
+<script>
+  const IMAGE_POOL = [
+    "https://i.ibb.co/vvJWBt6q/80d32dd2f6e89bf452568e836278eae8.jpg",
+    "https://i.ibb.co/zWL2RSPK/Capture-d-e-cran-2025-09-17-a-21-47-23.png",
+    "https://i.ibb.co/PzmvVKtg/Capture-d-e-cran-2025-09-17-a-21-46-58.png",
+    "https://i.ibb.co/C3KJrd42/Capture-d-e-cran-2025-09-17-a-21-47-12.png"
+  ];
+  function pickRandomDifferent(){
+  const last = localStorage.getItem("facereveal_last_img");
+    let idx = Math.floor(Math.random() * IMAGE_POOL.length);
+    if (IMAGE_POOL.length > 1 && last !== null) {
+      let tries = 0;
+      while (IMAGE_POOL[idx] === last && tries < 10) {
+        idx = Math.floor(Math.random() * IMAGE_POOL.length);
+        tries++;
+      }
+    }
+  localStorage.setItem("facereveal_last_img", IMAGE_POOL[idx]);
+    return IMAGE_POOL[idx];
+  }
+
+  const liveOverlay = document.getElementById('liveOverlay');
+  const accessOverlay = document.getElementById('accessOverlay');
+  const btnViewLive = document.getElementById('btnViewLive');
+  const closeLive = document.getElementById('closeLive');
+  const closeAccess = document.getElementById('closeAccess');
+  const liveMedia = document.getElementById('liveMedia');
+
+  const DURATION = 4000;
+  let raf, startTime;
+  const bar = document.getElementById('bar');
+  const liveText = document.getElementById('liveText');
+
+  function startConnecting(){
+    const imgUrl = pickRandomDifferent();
+    liveMedia.style.backgroundImage = `url('${imgUrl}')`;
+    startTime = performance.now();
+    function tick(now){
+      const t = Math.min(1, (now - startTime) / DURATION);
+      bar.style.width = (t*100).toFixed(2) + '%';
+      if(t < 1){ raf = requestAnimationFrame(tick); }
+      else { setTimeout(showAccess, 200); }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function resetConnecting(){
+    cancelAnimationFrame(raf);
+    bar.style.width = '0%';
+    liveText.textContent = 'Connexion au flux en cours…';
+    liveMedia.style.backgroundImage = '';
+  }
+
+  function showAccess(){
+    liveOverlay.classList.remove('active');
+    resetConnecting();
+    accessOverlay.classList.add('active');
+  }
+
+  btnViewLive.addEventListener('click', () => { liveOverlay.classList.add('active'); startConnecting(); });
+  closeLive.addEventListener('click', () => { liveOverlay.classList.remove('active'); resetConnecting(); });
+  liveOverlay.addEventListener('click', (e)=>{ if(e.target===liveOverlay){ liveOverlay.classList.remove('active'); resetConnecting(); } });
+
+  closeAccess.addEventListener('click', () => accessOverlay.classList.remove('active'));
+  accessOverlay.addEventListener('click', (e)=>{ if(e.target===accessOverlay){ accessOverlay.classList.remove('active'); } });
+
+  IMAGE_POOL.forEach(src => { const i = new Image(); i.src = src; });
+</script>
+</body>
+</html>
